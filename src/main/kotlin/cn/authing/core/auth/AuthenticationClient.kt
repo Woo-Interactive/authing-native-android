@@ -5,10 +5,13 @@ import cn.authing.core.graphql.GraphQLCall
 import cn.authing.core.graphql.GraphQLResponse
 import cn.authing.core.http.HttpCall
 import cn.authing.core.types.*
+import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 
 class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
+    private var user: User? = null
+
     /**
      * 获取当前用户信息
      */
@@ -17,6 +20,7 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
         return createGraphQLCall(
             param.createRequest(),
             object : TypeToken<GraphQLResponse<UserResponse>>() {}) {
+            user = it.result
             accessToken = it.result.token ?: accessToken
             return@createGraphQLCall it.result
         }
@@ -32,6 +36,7 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
         return createGraphQLCall(
             param.createRequest(),
             object : TypeToken<GraphQLResponse<LoginByUsernameResponse>>() {}) {
+            user = it.result
             accessToken = it.result.token ?: accessToken
             return@createGraphQLCall it.result
         }
@@ -47,6 +52,7 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
         return createGraphQLCall(
             param.createRequest(),
             object : TypeToken<GraphQLResponse<LoginByEmailResponse>>() {}) {
+            user = it.result
             accessToken = it.result.token ?: accessToken
             return@createGraphQLCall it.result
         }
@@ -61,6 +67,7 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
         return createGraphQLCall(
             param.createRequest(),
             object : TypeToken<GraphQLResponse<LoginByPhoneCodeResponse>>() {}) {
+            user = it.result
             accessToken = it.result.token ?: accessToken
             return@createGraphQLCall it.result
         }
@@ -76,26 +83,10 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
         return createGraphQLCall(
             param.createRequest(),
             object : TypeToken<GraphQLResponse<LoginByPhonePasswordResponse>>() {}) {
+            user = it.result
             accessToken = it.result.token ?: accessToken
             return@createGraphQLCall it.result
         }
-    }
-
-    /**
-     * 通过微信登录，获取用户信息
-     */
-    fun loginByWechat(
-        country: String?,
-        lang: String?,
-        state: String?,
-        code: String
-    ): HttpCall<CommonMessage> {
-        var url = "$host/connection/social/wechat:mobile/\"$userPoolId\"/callback?code=\"$code\""
-        url += if (country != null) "&country=\"$country\"" else ""
-        url += if (lang != null) "&lang=\"$lang\"" else ""
-        url += if (state != null) "&state=\"$state\"" else ""
-
-        return createHttpGetCall(url, object : TypeToken<CommonMessage>() {})
     }
 
     /**
@@ -108,6 +99,7 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
         return createGraphQLCall(
             param.createRequest(),
             object : TypeToken<GraphQLResponse<RegisterByUsernameResponse>>() {}) {
+            user = it.result
             accessToken = it.result.token ?: accessToken
             return@createGraphQLCall it.result
         }
@@ -123,6 +115,7 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
         return createGraphQLCall(
             param.createRequest(),
             object : TypeToken<GraphQLResponse<RegisterByEmailResponse>>() {}) {
+            user = it.result
             accessToken = it.result.token ?: accessToken
             return@createGraphQLCall it.result
         }
@@ -140,6 +133,7 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
         return createGraphQLCall(
             param.createRequest(),
             object : TypeToken<GraphQLResponse<RegisterByPhoneCodeResponse>>() {}) {
+            user = it.result
             accessToken = it.result.token ?: accessToken
             return@createGraphQLCall it.result
         }
@@ -148,11 +142,13 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
     /**
      * 发送手机验证码
      */
-    fun sendSmsCode(phone: String): HttpCall<CommonMessage> {
+    fun sendSmsCode(phone: String): HttpCall<CommonMessage, CommonMessage> {
         val url = "$host/api/v2/sms/send"
-        val json = "{ \"phone\": \"$phone\" }";
+        val json = "{ \"phone\": \"$phone\" }"
 
-        return createHttpPostCall(url, json, object : TypeToken<CommonMessage>() {})
+        return createHttpPostCall(url, json, object : TypeToken<CommonMessage>() {}) {
+            it
+        }
     }
 
     /**
@@ -217,6 +213,7 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
     fun updateProfile(input: UpdateUserInput): GraphQLCall<UpdateUserResponse, User> {
         val param = UpdateUserParam(input = input)
         return createGraphQLCall(param.createRequest(), object : TypeToken<GraphQLResponse<UpdateUserResponse>>() {}) {
+            user = it.result
             accessToken = it.result.token ?: accessToken
             return@createGraphQLCall it.result
         }
@@ -232,6 +229,7 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
         return createGraphQLCall(
             param.createRequest(),
             object : TypeToken<GraphQLResponse<UpdatePasswordResponse>>() {}) {
+            user = it.result
             accessToken = it.result.token ?: accessToken
             return@createGraphQLCall it.result
         }
@@ -250,6 +248,7 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
         val param = UpdatePhoneParam(phone, phoneCode, oldPhone, oldPhoneCode)
 
         return createGraphQLCall(param.createRequest(), object : TypeToken<GraphQLResponse<UpdatePhoneResponse>>() {}) {
+            user = it.result
             accessToken = it.result.token ?: accessToken
             return@createGraphQLCall it.result
         }
@@ -268,6 +267,7 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
         val param = UpdateEmailParam(email, emailCode, oldEmail, oldEmailCode)
 
         return createGraphQLCall(param.createRequest(), object : TypeToken<GraphQLResponse<UpdateEmailResponse>>() {}) {
+            user = it.result
             accessToken = it.result.token ?: accessToken
             return@createGraphQLCall it.result
         }
@@ -275,14 +275,14 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
 
     /**
      * 刷新用户 access token
-     * @param [param] asd
      */
     fun refreshToken(): GraphQLCall<RefreshTokenResponse, RefreshToken> {
         val param = RefreshTokenParam()
         return createGraphQLCall(
             param.createRequest(),
             object : TypeToken<GraphQLResponse<RefreshTokenResponse>>() {}) {
-            it.result
+            accessToken = it.result.token
+            return@createGraphQLCall it.result
         }
     }
 
@@ -292,6 +292,7 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
     fun bindPhone(phone: String, phoneCode: String): GraphQLCall<BindPhoneResponse, User> {
         val param = BindPhoneParam(phone, phoneCode)
         return createGraphQLCall(param.createRequest(), object : TypeToken<GraphQLResponse<BindPhoneResponse>>() {}) {
+            user = it.result
             accessToken = it.result.token ?: accessToken
             return@createGraphQLCall it.result
         }
@@ -303,6 +304,7 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
     fun unbindPhone(): GraphQLCall<UnbindPhoneResponse, User> {
         val param = UnbindPhoneParam()
         return createGraphQLCall(param.createRequest(), object : TypeToken<GraphQLResponse<UnbindPhoneResponse>>() {}) {
+            user = it.result
             accessToken = it.result.token ?: accessToken
             return@createGraphQLCall it.result
         }
@@ -314,7 +316,48 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
     fun logout(): GraphQLCall<Unit, Unit> {
         val param = UpdateUserParam(input = UpdateUserInput().withTokenExpiredAt("0"))
         return createGraphQLCall(param.createRequest(), object : TypeToken<GraphQLResponse<Unit>>() {}) {
+            user = null
             accessToken = null
+        }
+    }
+
+    /**
+     * 获取当前用户的自定义数据列表
+     */
+    fun listUdv(): GraphQLCall<UdvResponse, List<UserDefinedData>> {
+        if (user == null) {
+            throw Exception("login first")
+        }
+        val param = UdvParam(UdfTargetType.USER, user!!.id)
+        return createGraphQLCall(param.createRequest(), object : TypeToken<GraphQLResponse<UdvResponse>>() {}) {
+            it.result
+        }
+    }
+
+    /**
+     * 添加自定义数据
+     */
+    fun setUdv(key: String, value: Any): GraphQLCall<SetUdvResponse, List<UserDefinedData>> {
+        if (user == null) {
+            throw Exception("login first")
+        }
+        val json = Gson()
+        val param = SetUdvParam(UdfTargetType.USER, user!!.id, key, json.toJson(value))
+        return createGraphQLCall(param.createRequest(), object : TypeToken<GraphQLResponse<SetUdvResponse>>() {}) {
+            it.result
+        }
+    }
+
+    /**
+     * 移除自定义数据
+     */
+    fun removeUdv(key: String): GraphQLCall<RemoveUdvResponse, List<UserDefinedData>> {
+        if (user == null) {
+            throw Exception("login first")
+        }
+        val param = RemoveUdvParam(UdfTargetType.USER, user!!.id, key)
+        return createGraphQLCall(param.createRequest(), object : TypeToken<GraphQLResponse<RemoveUdvResponse>>() {}) {
+            it.result
         }
     }
 }

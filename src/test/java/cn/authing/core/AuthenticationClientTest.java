@@ -8,6 +8,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Random;
 
 public class AuthenticationClientTest {
@@ -19,15 +20,13 @@ public class AuthenticationClientTest {
 
     @Before
     public void before() {
-        client = new AuthenticationClient("5f980c2bbb3636f3a1775477");
-//        client.setHost("https://core.authing.cn");
-        client.setHost("https://oauth.authing.cn");
-
+        client = new AuthenticationClient("59f86b4832eb28071bdd9214");
+        client.setHost("http://localhost:3000");
     }
 
     @Test
     public void registerByEmail() throws IOException, GraphQLException {
-        String email = "test" + "@gmail.com";
+        String email = randomString() + "@gmail.com";
         String password = "123456";
         User user = client.registerByEmail(new RegisterByEmailInput(email, password)).execute();
         Assert.assertEquals(user.getEmail(), email);
@@ -35,7 +34,7 @@ public class AuthenticationClientTest {
 
     @Test
     public void registerByUsername() throws IOException, GraphQLException {
-        String username = "test2";
+        String username = randomString();
         String password = "123456";
         User user = client.registerByUsername(new RegisterByUsernameInput(username, password)).execute();
         Assert.assertEquals(user.getUsername(), username);
@@ -43,21 +42,21 @@ public class AuthenticationClientTest {
 
     @Test
     public void registerByPhonePhoneCode() throws IOException, GraphQLException {
-        String phone = "13477292012";
-        String code = "8635";
+        String phone = "17611161550";
+        String code = "123456";
         User user = client.registerByPhoneCode(new RegisterByPhoneCodeInput(phone, code)).execute();
         Assert.assertEquals(user.getPhone(), phone);
     }
 
     @Test
     public void sendSmsCode() throws IOException {
-        String phone = "13477292012";
+        String phone = "17611161550";
         client.sendSmsCode(phone).execute();
     }
 
     @Test
     public void loginByEmail() throws IOException, GraphQLException {
-        String email = "test@gmail.com";
+        String email = "test@test.com";
         String password = "123456";
         User user = client.loginByEmail(new LoginByEmailInput(email, password)).execute();
         Assert.assertEquals(user.getEmail(), email);
@@ -73,25 +72,18 @@ public class AuthenticationClientTest {
 
     @Test
     public void loginByPhoneCode() throws IOException, GraphQLException {
-        String phone = "13477292012";
-        String code = "5841";
+        String phone = "17611161550";
+        String code = "2190";
         User user = client.loginByPhoneCode(new LoginByPhoneCodeInput(phone, code)).execute();
         Assert.assertEquals(user.getPhone(), phone);
     }
 
     @Test
     public void loginByPhonePassword() throws IOException, GraphQLException {
-        String phone = "13477292012";
+        String phone = "17611161550";
         String password = "123456";
         User user = client.loginByPhonePassword(new LoginByPhonePasswordInput(phone, password)).execute();
         Assert.assertEquals(user.getPhone(), phone);
-    }
-
-    @Test
-    public void loginByWechat() throws IOException, GraphQLException {
-        String code = "2341234";
-        CommonMessage message = client.loginByWechat(null,null,null, code).execute();
-        System.out.println(message);
     }
 
     @Test
@@ -111,7 +103,7 @@ public class AuthenticationClientTest {
 
     @Test
     public void resetPasswordByPhoneCode() throws IOException, GraphQLException {
-        client.resetPasswordByPhoneCode("13477292012", "1234", "123456").execute();
+        client.resetPasswordByPhoneCode("17611161550", "1234", "123456").execute();
     }
 
     @Test
@@ -196,5 +188,15 @@ public class AuthenticationClientTest {
         client.loginByUsername(new LoginByUsernameInput(username, password)).execute();
 
         client.logout().execute();
+    }
+
+    @Test
+    public void listUdv() throws IOException, GraphQLException {
+        String username = "test";
+        String password = "123456";
+        client.loginByUsername(new LoginByUsernameInput(username, password)).execute();
+
+        List<UserDefinedData> udv = client.listUdv().execute();
+        Assert.assertEquals(0, udv.size());
     }
 }

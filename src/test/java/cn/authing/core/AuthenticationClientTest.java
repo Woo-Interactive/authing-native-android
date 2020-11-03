@@ -2,6 +2,7 @@ package cn.authing.core;
 
 import cn.authing.core.auth.AuthenticationClient;
 import cn.authing.core.graphql.GraphQLException;
+import cn.authing.core.http.HttpCall;
 import cn.authing.core.types.*;
 import org.junit.Assert;
 import org.junit.Before;
@@ -20,8 +21,8 @@ public class AuthenticationClientTest {
 
     @Before
     public void before() {
-        client = new AuthenticationClient("59f86b4832eb28071bdd9214");
-        client.setHost("http://localhost:3000");
+        client = new AuthenticationClient("5f980c2bbb3636f3a1775477");
+        client.setHost("https://oauth.authing.cn");
     }
 
     @Test
@@ -87,6 +88,13 @@ public class AuthenticationClientTest {
     }
 
     @Test
+    public void loginByWechat() throws IOException, GraphQLException {
+        String code = "021I11Ga1hP9Uz0GJbGa1SVgxo4I11G7";
+        User user = client.loginByWechat(code).execute();
+        Assert.assertNotNull(user);
+    }
+
+    @Test
     public void checkLoginStatus() throws IOException, GraphQLException {
         String username = "test";
         String password = "123456";
@@ -94,6 +102,13 @@ public class AuthenticationClientTest {
 
         JwtTokenStatus status = client.checkLoginStatus().execute();
         Assert.assertEquals(status.getCode().intValue(), 200);
+    }
+
+    @Test
+    public void checkPasswordStrength() throws IOException, GraphQLException {
+        String password = "123456";
+        CheckPasswordStrengthResult result = client.checkPasswordStrength(password).execute();
+        Assert.assertTrue(result.getValid());
     }
 
     @Test
@@ -191,12 +206,33 @@ public class AuthenticationClientTest {
     }
 
     @Test
-    public void listUdv() throws IOException, GraphQLException {
+    public void udv() throws IOException, GraphQLException {
         String username = "test";
         String password = "123456";
         client.loginByUsername(new LoginByUsernameInput(username, password)).execute();
 
-        List<UserDefinedData> udv = client.listUdv().execute();
+        List<UserDefinedData> udv = client.udv().execute();
         Assert.assertEquals(0, udv.size());
     }
+
+    @Test
+    public void setUdv() throws IOException, GraphQLException {
+        String username = "test";
+        String password = "123456";
+        client.loginByUsername(new LoginByUsernameInput(username, password)).execute();
+
+        List<UserDefinedData> udv = client.setUdv("testKey", "testValue").execute();
+        Assert.assertEquals(1, udv.size());
+    }
+
+    @Test
+    public void removeUdv() throws IOException, GraphQLException {
+        String username = "test";
+        String password = "123456";
+        client.loginByUsername(new LoginByUsernameInput(username, password)).execute();
+
+        List<UserDefinedData> udv = client.removeUdv("testKey").execute();
+        Assert.assertEquals(0, udv.size());
+    }
+
 }

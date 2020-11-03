@@ -90,6 +90,24 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
     }
 
     /**
+     * 通过微信登录，获取用户信息
+     */
+    @JvmOverloads
+    fun loginByWechat(
+        code: String,
+        country: String? = null,
+        lang: String? = null,
+        state: String? = null
+    ): HttpCall<RestfulResponse<User>, User> {
+        var url = "$host/connection/social/wechat:mobile/$userPoolId/callback?code=$code"
+        url += if (country != null) "&country=$country" else ""
+        url += if (lang != null) "&lang=$lang" else ""
+        url += if (state != null) "&state=$state" else ""
+
+        return createHttpGetCall(url, object : TypeToken<RestfulResponse<User>>() {}) { it.data }
+    }
+
+    /**
      * 通过用户名注册
      */
     fun registerByUsername(input: RegisterByUsernameInput): GraphQLCall<RegisterByUsernameResponse, User> {
@@ -161,6 +179,11 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
             object : TypeToken<GraphQLResponse<CheckLoginStatusResponse>>() {}) {
             it.result
         }
+    }
+
+    fun checkPasswordStrength(password: String): GraphQLCall<CheckPasswordStrengthResponse, CheckPasswordStrengthResult> {
+        val param = CheckPasswordStrengthParam(password)
+        return createGraphQLCall(param.createRequest(), object : TypeToken<GraphQLResponse<CheckPasswordStrengthResponse>>() {}) { it.result }
     }
 
     /**
@@ -311,6 +334,18 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
     }
 
     /**
+     * 解绑邮箱
+     */
+    fun unbindEmail(): GraphQLCall<UnbindEmailResponse, User> {
+        val param = UnbindPhoneParam()
+        return createGraphQLCall(param.createRequest(), object : TypeToken<GraphQLResponse<UnbindEmailResponse>>() {}) {
+            user = it.result
+            accessToken = it.result.token ?: accessToken
+            return@createGraphQLCall it.result
+        }
+    }
+
+    /**
      * 注销当前用户
      */
     fun logout(): GraphQLCall<Unit, Unit> {
@@ -324,7 +359,7 @@ class AuthenticationClient(userPoolId: String) : BaseClient(userPoolId) {
     /**
      * 获取当前用户的自定义数据列表
      */
-    fun listUdv(): GraphQLCall<UdvResponse, List<UserDefinedData>> {
+    fun udv(): GraphQLCall<UdvResponse, List<UserDefinedData>> {
         if (user == null) {
             throw Exception("login first")
         }
